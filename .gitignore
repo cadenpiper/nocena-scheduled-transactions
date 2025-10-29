@@ -1,0 +1,22 @@
+# Flow private keys
+*.pkey
+emulator-account.pkey
+testnet-account.pkey
+testnet-account2.pkey
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Flow imports
+imports/
+
+# Editor files
+.cursor/
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -5,6 +5,12 @@
 			"aliases": {
 				"testing": "0000000000000007"
 			}
+		},
+		"ChallengeTransactionHandler": {
+			"source": "cadence/contracts/ChallengeTransactionHandler.cdc",
+			"aliases": {
+				"testing": "0000000000000007"
+			}
 		}
 	},
 	"dependencies": {
@@ -121,12 +127,26 @@
 				"type": "file",
 				"location": "emulator-account.pkey"
 			}
+		},
+		"testnet-account": {
+			"address": "7a6655221a6d9363",
+			"key": {
+				"type": "file",
+				"location": "testnet-account.pkey"
+			}
 		}
 	},
 	"deployments": {
 		"emulator": {
 			"emulator-account": [
-				"ChallengeScheduler"
+				"ChallengeScheduler",
+				"ChallengeTransactionHandler"
+			]
+		},
+		"testnet": {
+			"testnet-account": [
+				"ChallengeScheduler",
+				"ChallengeTransactionHandler"
 			]
 		}
 	}
