@@ -42,19 +42,6 @@ flow accounts create --key YOUR_PUBLIC_KEY --network testnet
 flow config add-account testnet-account --address YOUR_ADDRESS --key YOUR_PRIVATE_KEY --network testnet
 ```
 
-#### For Mainnet:
-```bash
-# Generate new key pair
-flow keys generate
-
-# Create account on mainnet (requires existing funded account or service)
-flow accounts create --key YOUR_PUBLIC_KEY --network mainnet
-
-# Fund the account with FLOW tokens for deployment and execution costs
-# Add account to flow.json
-flow config add-account mainnet-account --address YOUR_ADDRESS --key YOUR_PRIVATE_KEY --network mainnet
-```
-
 ### Deployment
 
 1. **Configure flow.json**
@@ -152,12 +139,6 @@ When these events are emitted, the application automatically generates new chall
 ├── flow.json                               # Flow project configuration
 └── README.md
 ```
-
-## Cost Analysis
-
-- **Initial Setup**: ~3 FLOW (one-time deployment and initialization)
-- **Per Execution**: ~1 FLOW (transaction fees)
-- **Monthly Operating Cost**: ~93 FLOW (daily + weekly + monthly executions)
 
 ## Security
 
