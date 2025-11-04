@@ -1,16 +1,16 @@
-import "ChallengeTransactionHandler"
+import "NocenaChallengeHandler"
 
 transaction(challengeType: String) {
     prepare(signer: auth(Storage) &Account) {
         switch challengeType {
             case "daily":
-                ChallengeTransactionHandler.stopDaily()
+                NocenaChallengeHandler.stopDaily()
             case "weekly":
-                ChallengeTransactionHandler.stopWeekly()
+                NocenaChallengeHandler.stopWeekly()
             case "monthly":
-                ChallengeTransactionHandler.stopMonthly()
+                NocenaChallengeHandler.stopMonthly()
             case "all":
-                ChallengeTransactionHandler.stopAll()
+                NocenaChallengeHandler.stopAll()
             default:
                 panic("Invalid challenge type. Use: daily, weekly, monthly, or all")
         }

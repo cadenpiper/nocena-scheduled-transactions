@@ -1,13 +1,7 @@
 {
 	"contracts": {
-		"ChallengeScheduler": {
-			"source": "cadence/contracts/ChallengeScheduler.cdc",
-			"aliases": {
-				"testing": "0000000000000007"
-			}
-		},
-		"ChallengeTransactionHandler": {
-			"source": "cadence/contracts/ChallengeTransactionHandler.cdc",
+		"NocenaChallengeHandler": {
+			"source": "cadence/contracts/NocenaChallengeHandler.cdc",
 			"aliases": {
 				"testing": "0000000000000007"
 			}
@@ -139,14 +133,12 @@
 	"deployments": {
 		"emulator": {
 			"emulator-account": [
-				"ChallengeScheduler",
-				"ChallengeTransactionHandler"
+				"NocenaChallengeHandler"
 			]
 		},
 		"testnet": {
 			"testnet-account": [
-				"ChallengeScheduler",
-				"ChallengeTransactionHandler"
+				"NocenaChallengeHandler"
 			]
 		}
 	}

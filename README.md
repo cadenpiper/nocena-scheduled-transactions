@@ -8,17 +8,30 @@ This repository contains the smart contracts that power Nocena's automated chall
 
 ## Architecture
 
-- **ChallengeScheduler**: Core contract that emits timed challenge events
-- **ChallengeTransactionHandler**: Manages scheduled execution and automatic rescheduling
+- **NocenaChallengeHandler**: Self-rescheduling contract that emits timed challenge events and manages scheduling
 - **Event-Driven**: Blockchain events trigger challenge generation in the Nocena application
+- **Decentralized**: No dependency on external infrastructure or cron jobs
 
 ## Features
 
 - ✅ **Decentralized Automation**: No dependency on centralized infrastructure
-- ✅ **Continuous Scheduling**: Automatically reschedules after each execution
-- ✅ **Multiple Intervals**: Daily, weekly, and monthly challenge generation
-- ✅ **Granular Control**: Stop individual or all scheduled challenges
-- ✅ **Cost Effective**: ~1 FLOW token per execution
+- ✅ **Self-Rescheduling**: Automatically reschedules after each execution using Flow's scheduled transactions
+- ✅ **Multiple Challenge Types**: Daily, weekly, and monthly challenge generation
+- ✅ **Granular Control**: Start/stop individual challenge types or all challenges
+- ✅ **Immediate Events**: Emits initial events when starting for instant frontend feedback
+- ✅ **Cost Effective**: Minimal FLOW token cost per execution
+
+## Challenge Types & Intervals
+
+### Testing/Development
+- **Daily**: 15 seconds
+- **Weekly**: 30 seconds  
+- **Monthly**: 45 seconds
+
+### Production (Ready to Deploy)
+- **Daily**: 86400 seconds (24 hours)
+- **Weekly**: 604800 seconds (7 days)
+- **Monthly**: 2592000 seconds (30 days)
 
 ## Setup Guide
 
@@ -44,12 +57,7 @@ flow config add-account testnet-account --address YOUR_ADDRESS --key YOUR_PRIVAT
 
 ### Deployment
 
-1. **Configure flow.json**
-   ```bash
-   # Update the account address in flow.json with your account details
-   ```
-
-2. **Deploy Contracts**
+1. **Deploy Contract**
    ```bash
    # Deploy to testnet
    flow project deploy --network testnet
@@ -58,42 +66,39 @@ flow config add-account testnet-account --address YOUR_ADDRESS --key YOUR_PRIVAT
    flow project deploy --network mainnet
    ```
 
-3. **Initialize Handler**
+2. **Start All Challenges**
    ```bash
-   flow transactions send cadence/transactions/InitChallengeHandler.cdc \
-     --network testnet --signer your-account
-   ```
-
-4. **Schedule Challenges**
-   ```bash
-   # Production intervals (24h, 7d, 30d)
-   flow transactions send cadence/transactions/ScheduleChallenges.cdc \
-     --network testnet --signer your-account \
-     --args-json '[
-       {"type":"UFix64","value":"86400.0"},
-       {"type":"UFix64","value":"604800.0"},
-       {"type":"UFix64","value":"2592000.0"}
-     ]'
+   flow transactions send cadence/transactions/StartChallenges.cdc \
+     --network testnet --signer testnet-account
    ```
 
 ### Management
 
-#### Stop Scheduling
+#### Stop Challenges
 ```bash
 # Stop all challenges
 flow transactions send cadence/transactions/StopChallenges.cdc \
-  --network testnet --signer your-account \
+  --network testnet --signer testnet-account \
   --args-json '[{"type":"String","value":"all"}]'
 
 # Stop specific challenge type
 flow transactions send cadence/transactions/StopChallenges.cdc \
-  --network testnet --signer your-account \
+  --network testnet --signer testnet-account \
   --args-json '[{"type":"String","value":"daily"}]'
 ```
 
 #### Monitor Events
 ```bash
-flow events get A.{CONTRACT_ADDRESS}.ChallengeScheduler.TriggerDailyChallenge \
+# Monitor daily challenges
+flow events get A.{CONTRACT_ADDRESS}.NocenaChallengeHandler.TriggerDailyChallenge \
+  --network testnet --last 10
+
+# Monitor weekly challenges  
+flow events get A.{CONTRACT_ADDRESS}.NocenaChallengeHandler.TriggerWeeklyChallenge \
+  --network testnet --last 10
+
+# Monitor monthly challenges
+flow events get A.{CONTRACT_ADDRESS}.NocenaChallengeHandler.TriggerMonthlyChallenge \
   --network testnet --last 10
 ```
 
@@ -101,49 +106,64 @@ flow events get A.{CONTRACT_ADDRESS}.ChallengeScheduler.TriggerDailyChallenge \
 
 The Nocena application listens for these blockchain events:
 
-- `A.{CONTRACT_ADDRESS}.ChallengeScheduler.TriggerDailyChallenge`
-- `A.{CONTRACT_ADDRESS}.ChallengeScheduler.TriggerWeeklyChallenge`
-- `A.{CONTRACT_ADDRESS}.ChallengeScheduler.TriggerMonthlyChallenge`
+- `A.{CONTRACT_ADDRESS}.NocenaChallengeHandler.TriggerDailyChallenge`
+- `A.{CONTRACT_ADDRESS}.NocenaChallengeHandler.TriggerWeeklyChallenge`
+- `A.{CONTRACT_ADDRESS}.NocenaChallengeHandler.TriggerMonthlyChallenge`
 
 When these events are emitted, the application automatically generates new challenges for users.
 
-## Configuration
+## How It Works
 
-### Scheduling Intervals
-
-**Production:**
-- Daily: 86400 seconds (24 hours)
-- Weekly: 604800 seconds (7 days)  
-- Monthly: 2592000 seconds (30 days)
-
-**Testing:**
-- Daily: 5 seconds
-- Weekly: 10 seconds
-- Monthly: 15 seconds
+1. **Initialization**: `StartChallenges.cdc` creates handler, enables all challenge types, and emits initial events
+2. **Scheduling**: Three scheduled transactions are created (daily, weekly, monthly) with different start times
+3. **Execution**: Each scheduled transaction executes, emits its challenge event, and reschedules itself
+4. **Self-Rescheduling**: Handler automatically schedules the next execution using Flow's scheduled transactions
+5. **Stop Control**: Challenge types can be individually disabled to prevent rescheduling
 
 ## Project Structure
 
 ```
 ├── cadence/
 │   ├── contracts/
-│   │   ├── ChallengeScheduler.cdc          # Core scheduling contract
-│   │   └── ChallengeTransactionHandler.cdc # Execution handler
-│   ├── scripts/
-│   │   ├── CheckScheduler.cdc              # Query scheduler status
-│   │   ├── GetChallengeStats.cdc           # Get execution statistics
-│   │   └── TestHandlerCapability.cdc       # Test handler setup
+│   │   └── NocenaChallengeHandler.cdc       # Main challenge scheduling contract
 │   └── transactions/
-│       ├── InitChallengeHandler.cdc        # Initialize handler
-│       ├── ScheduleChallenges.cdc          # Start scheduling
-│       └── StopChallenges.cdc              # Stop scheduling
-├── flow.json                               # Flow project configuration
+│       ├── StartChallenges.cdc              # Initialize and start all challenges
+│       ├── StopChallenges.cdc               # Stop individual or all challenges
+│       └── TimeTravel.cdc                   # Emulator testing utility
+├── flow.json                                # Flow project configuration
 └── README.md
 ```
 
+## Development & Testing
+
+### Emulator Testing
+```bash
+# Start emulator
+flow emulator start
+
+# Deploy to emulator
+flow project deploy --network emulator
+
+# Start challenges
+flow transactions send cadence/transactions/StartChallenges.cdc \
+  --network emulator --signer emulator-account
+
+# Advance blocks for testing (emulator only)
+flow transactions send cadence/transactions/TimeTravel.cdc \
+  --network emulator --signer emulator-account \
+  --args-json '[{"type":"UInt64","value":"20"}]'
+```
+
+### Key Features Tested
+- ✅ **Self-rescheduling**: Challenges automatically continue at specified intervals
+- ✅ **Stop mechanism**: Individual challenge types can be stopped and restarted
+- ✅ **Initial events**: Immediate event emission when starting challenges
+- ✅ **Multiple intervals**: Different timing for daily/weekly/monthly challenges
+
 ## Security
 
-- Only contract owner can stop scheduling
-- Scheduled transactions are immutable once created
+- Only contract deployer can start/stop challenges
+- Scheduled transactions are immutable once created (cannot be cancelled)
 - FlowToken fees required for each execution
 - Handler capabilities are properly scoped and secured
 
