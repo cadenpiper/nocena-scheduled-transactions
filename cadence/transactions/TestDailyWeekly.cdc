@@ -1,26 +1,34 @@
-import "NocenaChallengeHandler"
 import "FlowTransactionScheduler"
 import "FlowTransactionSchedulerUtils"
 import "FlowToken"
 import "FungibleToken"
+import "NocenaChallengeHandler"
 
-transaction() {
+transaction {
     prepare(signer: auth(Storage, Capabilities) &Account) {
-        // Create handler and manager if they don't exist
+        // Create handler if it doesn't exist
         if signer.storage.borrow<&NocenaChallengeHandler.Handler>(from: /storage/NocenaChallengeHandler) == nil {
             let handler <- NocenaChallengeHandler.createHandler()
             signer.storage.save(<-handler, to: /storage/NocenaChallengeHandler)
-            
-            let cap = signer.capabilities.storage.issue<auth(FlowTransactionScheduler.Execute) &{FlowTransactionScheduler.TransactionHandler}>(/storage/NocenaChallengeHandler)
         }
-        
-        if !signer.storage.check<@{FlowTransactionSchedulerUtils.Manager}>(from: FlowTransactionSchedulerUtils.managerStoragePath) {
+
+        // Create capability if it doesn't exist
+        if signer.capabilities.storage.getControllers(forPath: /storage/NocenaChallengeHandler).length == 0 {
+            let handlerCap = signer.capabilities.storage.issue<auth(FlowTransactionScheduler.Execute) &{FlowTransactionScheduler.TransactionHandler}>(/storage/NocenaChallengeHandler)
+            signer.capabilities.publish(handlerCap, at: /public/NocenaChallengeHandler)
+        }
+
+        // Create manager if it doesn't exist
+        if signer.storage.borrow<&{FlowTransactionSchedulerUtils.Manager}>(from: FlowTransactionSchedulerUtils.managerStoragePath) == nil {
             let manager <- FlowTransactionSchedulerUtils.createManager()
             signer.storage.save(<-manager, to: FlowTransactionSchedulerUtils.managerStoragePath)
         }
 
-        let manager = signer.storage.borrow<auth(FlowTransactionSchedulerUtils.Owner) &{FlowTransactionSchedulerUtils.Manager}>(from: FlowTransactionSchedulerUtils.managerStoragePath)!
-        let vaultRef = signer.storage.borrow<auth(FungibleToken.Withdraw) &FlowToken.Vault>(from: /storage/flowTokenVault)!
+        let vaultRef = signer.storage.borrow<auth(FungibleToken.Withdraw) &FlowToken.Vault>(from: /storage/flowTokenVault)
+            ?? panic("Could not borrow FlowToken vault")
+
+        let manager = signer.storage.borrow<auth(FlowTransactionSchedulerUtils.Owner) &{FlowTransactionSchedulerUtils.Manager}>(from: FlowTransactionSchedulerUtils.managerStoragePath)
+            ?? panic("Could not borrow Manager")
 
         let controllers = signer.capabilities.storage.getControllers(forPath: /storage/NocenaChallengeHandler)
         var handlerCap: Capability<auth(FlowTransactionScheduler.Execute) &{FlowTransactionScheduler.TransactionHandler}>? = nil
@@ -38,7 +46,7 @@ transaction() {
             data: "daily",
             timestamp: dailyFuture,
             priority: FlowTransactionScheduler.Priority.Medium,
-            executionEffort: 5000
+            executionEffort: 1000
         )
         let dailyFees <- vaultRef.withdraw(amount: dailyEstimate.flowFee ?? 0.0) as! @FlowToken.Vault
         
@@ -47,7 +55,7 @@ transaction() {
             data: "daily",
             timestamp: dailyFuture,
             priority: FlowTransactionScheduler.Priority.Medium,
-            executionEffort: 5000,
+            executionEffort: 1000,
             fees: <-dailyFees
         )
 
@@ -57,7 +65,7 @@ transaction() {
             data: "weekly",
             timestamp: weeklyFuture,
             priority: FlowTransactionScheduler.Priority.Medium,
-            executionEffort: 5000
+            executionEffort: 1000
         )
         let weeklyFees <- vaultRef.withdraw(amount: weeklyEstimate.flowFee ?? 0.0) as! @FlowToken.Vault
         
@@ -66,16 +74,10 @@ transaction() {
             data: "weekly",
             timestamp: weeklyFuture,
             priority: FlowTransactionScheduler.Priority.Medium,
-            executionEffort: 5000,
+            executionEffort: 1000,
             fees: <-weeklyFees
         )
 
-        log("Started daily and weekly challenges - they will self-reschedule")
-        
-        // Enable all challenges first
-        NocenaChallengeHandler.startAll()
-        
-        // Emit initial events immediately
-        NocenaChallengeHandler.emitInitialEvents()
+        log("Scheduled daily and weekly challenges")
     }
 }

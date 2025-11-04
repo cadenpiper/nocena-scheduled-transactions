@@ -95,7 +95,7 @@ access(all) contract NocenaChallengeHandler {
             }
             let future = getCurrentBlock().timestamp + delay
             let priority = FlowTransactionScheduler.Priority.Medium
-            let executionEffort: UInt64 = 1000
+            let executionEffort: UInt64 = 5000
 
             let estimate = FlowTransactionScheduler.estimate(
                 data: data,
